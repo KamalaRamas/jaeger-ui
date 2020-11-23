@@ -45,22 +45,23 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
       } else {
         id = parentNodeID;
       }
-      children.forEach(childId => addDenseSpan(denseSpansMap.get(childId), id));
+      children.forEach((childId) => addDenseSpan(denseSpansMap.get(childId), id));
     }
 
-    rootIDs.forEach(rootId => addDenseSpan(denseSpansMap.get(rootId), null));
+    rootIDs.forEach((rootId) => addDenseSpan(denseSpansMap.get(rootId), null));
     return dag;
   }
 
   static diff(a: TraceDag<TDenseSpanMembers>, b: TraceDag<TDenseSpanMembers>) {
     const dag: TraceDag<TDiffCounts> = new TraceDag();
+    const old_dag: TraceDag<TDiffCounts> = new TraceDag();
 
     function makeDiffNode(id: NodeID) {
       const nodeA = a.nodesMap.get(id);
       const nodeB = b.nodesMap.get(id);
       const parentNodeID = (nodeA && nodeA.parentID) || (nodeB && nodeB.parentID) || null;
       const members = [...(nodeA ? nodeA.members : []), ...(nodeB ? nodeB.members : [])];
-      dag.addNode(id, parentNodeID, {
+      old_dag.addNode(id, parentNodeID, {
         members,
         a: nodeA ? nodeA.members : null,
         b: nodeB ? nodeB.members : null,
@@ -69,8 +70,158 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
       });
     }
 
-    const ids = new Set([...a.nodesMap.keys(), ...b.nodesMap.keys()]);
-    ids.forEach(makeDiffNode);
+    function getEdge(t: TraceDag<TDenseSpanMembers>, id: NodeID) {
+      const trace: TraceDag<TDenseSpanMembers> = t;
+      const node = t.nodesMap.get(id);
+      const parent_id = node ? (node.parentID ? node.parentID : null) : null;
+      return parent_id
+        ? { parent_id: parent_id, child_id: id, trace: trace }
+        : { parent_id: '', child_id: id, trace: trace };
+    }
+    interface edge_vals {
+      parent_id: string;
+      child_id: string;
+      trace: TraceDag<TDenseSpanMembers>;
+    }
+    const before_ids = [...a.nodesMap.keys()];
+    const before_edges: edge_vals[] = before_ids.map((id) => getEdge(a, id));
+    const after_ids = [...b.nodesMap.keys()];
+    const after_edges: edge_vals[] = after_ids.map((id) => getEdge(b, id));
+
+    var before_diff = [];
+    for (var i = 0; i < before_edges.length; i++) {
+      let be: edge_vals = before_edges[i];
+      if (be.parent_id == '') continue;
+      let match: boolean = false;
+      for (var j = 0; j < after_edges.length; j++) {
+        let ae: edge_vals = after_edges[j];
+        if (ae.parent_id == '') continue;
+        if (be.parent_id == ae.parent_id && be.child_id == ae.child_id) {
+          match = true;
+          break;
+        }
+      }
+      if (match == false) {
+        before_diff.push(be);
+      }
+    }
+    console.log('Before Diff');
+    console.log(before_diff);
+
+    var after_diff = [];
+    for (var j = 0; j < after_edges.length; j++) {
+      let ae: edge_vals = after_edges[j];
+      if (ae.parent_id == '') continue;
+      let match: boolean = false;
+      for (var i = 0; i < before_edges.length; i++) {
+        let be: edge_vals = before_edges[i];
+        if (be.parent_id == '') continue;
+        if (be.parent_id == ae.parent_id && be.child_id == ae.child_id) {
+          match = true;
+          break;
+        }
+      }
+      if (match == false) {
+        after_diff.push(ae);
+      }
+    }
+    console.log('After Diff');
+    console.log(after_diff);
+
+    let roots: edge_vals[] = [];
+    let added = new Set();
+    for (var i = 0; i < before_diff.length; i++) {
+      let tmp1: edge_vals = before_diff[i];
+      let match: boolean = false;
+      for (var j = 0; j < before_diff.length; j++) {
+        if (i == j) continue;
+        let tmp2: edge_vals = before_diff[j];
+        if (tmp2.child_id == tmp1.parent_id) {
+          match = true;
+          break;
+        }
+      }
+      if (!match) {
+        roots.push(tmp1);
+        if (! added.has(tmp1.parent_id)) {
+          added.add(tmp1.parent_id);
+          /* Add parent node*/
+          const pnode = tmp1.trace.nodesMap.get(tmp1.parent_id);
+          const pnode_m = [...(pnode ? pnode.members : [])];
+          dag.addNode(tmp1.parent_id, null, {
+          members: pnode_m,
+          a: pnode ? pnode.members : null,
+          b: pnode ? pnode.members : null,
+          operation: (pnode && pnode.operation) || '__UNSET__',
+          service: (pnode && pnode.service) || '__UNSET__',
+          });
+        }
+
+        if (! added.has(tmp1.child_id)) {
+          added.add(tmp1.child_id);
+          /* Add child node */
+          const cnode = tmp1.trace.nodesMap.get(tmp1.child_id);
+          const cnode_m = [...(cnode ? cnode.members : [])];
+          dag.addNode(tmp1.child_id, tmp1.parent_id, {
+            members: cnode_m,
+            a: cnode ? cnode.members : null,
+            b: null,
+            operation: (cnode && cnode.operation) || '__UNSET__',
+            service: (cnode && cnode.service) || '__UNSET__',
+          });
+        }
+      }
+    }
+    for (var i = 0; i < after_diff.length; i++) {
+      let tmp1: edge_vals = after_diff[i];
+      let match: boolean = false;
+      for (var j = 0; j < after_diff.length; j++) {
+        if (i == j) continue;
+        let tmp2: edge_vals = after_diff[j];
+        if (tmp2.child_id == tmp1.parent_id) {
+          match = true;
+          break;
+        }
+      }
+      if (!match) {
+        roots.push(tmp1);
+        if (! added.has(tmp1.parent_id)) {
+          added.add(tmp1.parent_id);
+          /* Add parent node*/
+          const pnode = tmp1.trace.nodesMap.get(tmp1.parent_id);
+          const pnode_m = [...(pnode ? pnode.members : [])];
+          dag.addNode(tmp1.parent_id, null, {
+            members: pnode_m,
+            a: pnode ? pnode.members : null,
+            b: pnode ? pnode.members : null,
+            operation: (pnode && pnode.operation) || '__UNSET__',
+            service: (pnode && pnode.service) || '__UNSET__',
+          });
+        }
+
+        if(! added.has(tmp1.child_id)){
+          added.add(tmp1.child_id);
+          /* Add child node */
+          const cnode = tmp1.trace.nodesMap.get(tmp1.child_id);
+          const cnode_m = [...(cnode ? cnode.members : [])];
+          dag.addNode(tmp1.child_id, tmp1.parent_id, {
+            members: cnode_m,
+            a: null,
+            b: cnode ? cnode.members : null,
+            operation: (cnode && cnode.operation) || '__UNSET__',
+            service: (cnode && cnode.service) || '__UNSET__',
+          });
+        }
+        else {
+          throw new Error(`Child already present: How is this new?`);
+        }
+      }
+    }
+    console.log('Result');
+    console.log(roots);
+
+    //const ids = new Set([...a.nodesMap.keys(), ...b.nodesMap.keys()]);
+    //ids.forEach(makeDiffNode);
     return dag;
   }
 

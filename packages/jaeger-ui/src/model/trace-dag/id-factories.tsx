@@ -18,6 +18,6 @@ export type TIdFactory = (denseSpan: TDenseSpan, parentID: NodeID | null) => Nod
 
 export function ancestralPathParentOrLeaf(denseSpan: TDenseSpan, parentID: NodeID | null): NodeID {
   const { children, operation, service } = denseSpan;
-  const name = `${service}\t${operation}${children.size ? '' : '\t__LEAF__'}`;
+  const name = `${service}\t${operation}`;
   return parentID ? `${parentID}\v${name}` : name;
 }
