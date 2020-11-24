@@ -30,6 +30,8 @@ import './TraceDiffGraph.css';
 type Props = {
   a: FetchedTrace | TNil;
   b: FetchedTrace | TNil;
+  steady_traces: Map<string, FetchedTrace>;
+  incident_traces: Map<string, FetchedTrace>;
 } & TExtractUiFindFromStateReturn;
 
 const { classNameIsSmall, scaleOpacity, scaleStrokeOpacity } = Digraph.propsFactories;
@@ -44,7 +46,7 @@ export class UnconnectedTraceDiffGraph extends React.PureComponent<Props> {
   }
 
   render() {
-    const { a, b, uiFind = '' } = this.props;
+    const { a, b, steady_traces, incident_traces, uiFind = '' } = this.props;
     if (!a || !b) {
       return <h1 className="u-mt-vast u-tx-muted ub-tx-center">At least two Traces are needed</h1>;
     }
@@ -73,10 +75,22 @@ export class UnconnectedTraceDiffGraph extends React.PureComponent<Props> {
     }
     const aData = a.data;
     const bData = b.data;
+    let sData = [];
+    for (let k in steady_traces.keys()) {
+      let f = steady_traces.get(k);
+      let t = f ? f.data : null;
+      if (t) sData.push(t);
+    }
+    let iData = [];
+    for (let k in incident_traces.keys()) {
+      let f = incident_traces.get(k);
+      let t = f ? f.data : null;
+      if (t) iData.push(t);
+    }
     if (!aData || !bData) {
       return <div className="TraceDiffGraph--graphWrapper" />;
     }
-    const { edges, vertices } = getEdgesAndVertices(aData, bData);
+    const { edges, vertices } = getEdgesAndVertices(aData, bData, sData, iData);
     const keys = getUiFindVertexKeys(uiFind, vertices);
     const dagClassName = cx('TraceDiffGraph--dag', { 'is-uiFind-mode': uiFind });
     const inputProps: Record<string, any> = {

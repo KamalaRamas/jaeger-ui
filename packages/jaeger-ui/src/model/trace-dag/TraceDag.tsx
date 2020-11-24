@@ -52,7 +52,12 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
     return dag;
   }
 
-  static diff(a: TraceDag<TDenseSpanMembers>, b: TraceDag<TDenseSpanMembers>) {
+  static diff(
+    a: TraceDag<TDenseSpanMembers>,
+    b: TraceDag<TDenseSpanMembers>,
+    sdags: TraceDag<TDenseSpanMembers>[],
+    idags: TraceDag<TDenseSpanMembers>[]
+  ) {
     const dag: TraceDag<TDiffCounts> = new TraceDag();
     const old_dag: TraceDag<TDiffCounts> = new TraceDag();
 
@@ -69,6 +74,8 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
         service: (nodeA && nodeA.service) || (nodeB && nodeB.service) || '__UNSET__',
       });
     }
+    //const ids = new Set([...a.nodesMap.keys(), ...b.nodesMap.keys()]);
+    //ids.forEach(makeDiffNode);
 
     function getEdge(t: TraceDag<TDenseSpanMembers>, id: NodeID) {
       const trace: TraceDag<TDenseSpanMembers> = t;
@@ -143,21 +150,21 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
       }
       if (!match) {
         roots.push(tmp1);
-        if (! added.has(tmp1.parent_id)) {
+        if (!added.has(tmp1.parent_id)) {
           added.add(tmp1.parent_id);
           /* Add parent node*/
           const pnode = tmp1.trace.nodesMap.get(tmp1.parent_id);
           const pnode_m = [...(pnode ? pnode.members : [])];
           dag.addNode(tmp1.parent_id, null, {
-          members: pnode_m,
-          a: pnode ? pnode.members : null,
-          b: pnode ? pnode.members : null,
-          operation: (pnode && pnode.operation) || '__UNSET__',
-          service: (pnode && pnode.service) || '__UNSET__',
+            members: pnode_m,
+            a: pnode ? pnode.members : null,
+            b: pnode ? pnode.members : null,
+            operation: (pnode && pnode.operation) || '__UNSET__',
+            service: (pnode && pnode.service) || '__UNSET__',
           });
         }
 
-        if (! added.has(tmp1.child_id)) {
+        if (!added.has(tmp1.child_id)) {
           added.add(tmp1.child_id);
           /* Add child node */
           const cnode = tmp1.trace.nodesMap.get(tmp1.child_id);
@@ -185,7 +192,7 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
       }
       if (!match) {
         roots.push(tmp1);
-        if (! added.has(tmp1.parent_id)) {
+        if (!added.has(tmp1.parent_id)) {
           added.add(tmp1.parent_id);
           /* Add parent node*/
           const pnode = tmp1.trace.nodesMap.get(tmp1.parent_id);
@@ -199,7 +206,7 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
           });
         }
 
-        if(! added.has(tmp1.child_id)){
+        if (!added.has(tmp1.child_id)) {
           added.add(tmp1.child_id);
           /* Add child node */
           const cnode = tmp1.trace.nodesMap.get(tmp1.child_id);
@@ -211,8 +218,7 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
             operation: (cnode && cnode.operation) || '__UNSET__',
             service: (cnode && cnode.service) || '__UNSET__',
           });
-        }
-        else {
+        } else {
           throw new Error(`Child already present: How is this new?`);
         }
       }
@@ -220,8 +226,6 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
     console.log('Result');
     console.log(roots);
 
-    //const ids = new Set([...a.nodesMap.keys(), ...b.nodesMap.keys()]);
-    //ids.forEach(makeDiffNode);
     return dag;
   }
 

@@ -27,6 +27,7 @@ import * as jaegerApiActions from '../../actions/jaeger-api';
 import { TOP_NAV_HEIGHT } from '../../constants';
 import { FetchedTrace, TNil, ReduxState } from '../../types';
 import TTraceDiffState from '../../types/TTraceDiffState';
+import { Trace } from '../../types/trace';
 import pluckTruthy from '../../utils/ts/pluckTruthy';
 
 import './TraceDiff.css';
@@ -36,6 +37,8 @@ type TStateProps = {
   b: string | undefined;
   cohort: string[];
   tracesData: Map<string, FetchedTrace>;
+  steady_traces: Map<string, FetchedTrace>;
+  incident_traces: Map<string, FetchedTrace>;
   traceDiffState: TTraceDiffState;
 };
 
@@ -70,7 +73,7 @@ function syncStates(
     forceState(urlValues);
     return;
   }
-  const needSync = Array.from(urlCohort).some(id => !reduxCohort.has(id));
+  const needSync = Array.from(urlCohort).some((id) => !reduxCohort.has(id));
   if (needSync) {
     forceState(urlValues);
   }
@@ -112,8 +115,8 @@ export class TraceDiffImpl extends React.PureComponent<TStateProps & TDispatchPr
   processProps() {
     const { a, b, cohort, fetchMultipleTraces, forceState, tracesData, traceDiffState } = this.props;
     syncStates({ a, b, cohort }, traceDiffState, forceState);
-    const cohortData = cohort.map(id => tracesData.get(id) || { id, state: null });
-    const needForDiffs = cohortData.filter(ft => ft.state == null).map(ft => ft.id);
+    const cohortData = cohort.map((id) => tracesData.get(id) || { id, state: null });
+    const needForDiffs = cohortData.filter((ft) => ft.state == null).map((ft) => ft.id);
     if (needForDiffs.length) {
       fetchMultipleTraces(needForDiffs);
     }
@@ -137,11 +140,11 @@ export class TraceDiffImpl extends React.PureComponent<TStateProps & TDispatchPr
   };
 
   render() {
-    const { a, b, cohort, tracesData } = this.props;
+    const { a, b, cohort, tracesData, steady_traces, incident_traces } = this.props;
     const { graphTopOffset } = this.state;
     const traceA = a ? tracesData.get(a) || { id: a } : null;
     const traceB = b ? tracesData.get(b) || { id: b } : null;
-    const cohortData: FetchedTrace[] = cohort.map(id => tracesData.get(id) || { id });
+    const cohortData: FetchedTrace[] = cohort.map((id) => tracesData.get(id) || { id });
     return (
       <React.Fragment>
         <div key="header" ref={this.headerWrapperRef}>
@@ -155,7 +158,12 @@ export class TraceDiffImpl extends React.PureComponent<TStateProps & TDispatchPr
           />
         </div>
         <div key="graph" className="TraceDiff--graphWrapper" style={{ top: graphTopOffset }}>
-          <TraceDiffGraph a={traceA} b={traceB} />
+          <TraceDiffGraph
+            a={traceA}
+            b={traceB}
+            steady_traces={steady_traces}
+            incident_traces={incident_traces}
+          />
         </div>
       </React.Fragment>
     );
@@ -169,13 +177,58 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
   const fullCohortSet: Set<string> = new Set(pluckTruthy([a, b].concat(origCohort)));
   const cohort: string[] = Array.from(fullCohortSet);
   const { traces } = state.trace;
-  const kvPairs = cohort.map<[string, FetchedTrace]>(id => [id, traces[id] || { id, state: null }]);
+
+  const now = new Date();
+  const millisSinceEpoch = Math.round(now.getTime());
+  const twomin = millisSinceEpoch - 120000;
+
+  let steady_ids: string[] = [];
+  for (var i = 0; i < cohort.length; i++) {
+    let f: FetchedTrace = traces[cohort[i]];
+    let t = f ? f.data : null;
+    let stime: number = t ? t.startTime : 0;
+    if (stime) {
+      if (stime / 1000 < twomin) {
+        steady_ids.push(cohort[i]);
+      }
+    }
+  }
+  console.log('Steady-state IDs');
+  console.log(steady_ids);
+  const spairs = steady_ids.map<[string, FetchedTrace]>((id) => [id, traces[id]]);
+  const steady_traces: Map<string, FetchedTrace> = new Map(spairs);
+  console.log('Steady-state traces');
+  console.log(steady_traces);
+
+  let incident_ids: string[] = [];
+  for (var i = 0; i < cohort.length; i++) {
+    let f: FetchedTrace = traces[cohort[i]];
+    let t = f ? f.data : null;
+    let stime: number = t ? t.startTime : 0;
+    if (stime) {
+      if (stime / 1000 >= twomin) {
+        incident_ids.push(cohort[i]);
+      }
+    }
+  }
+  console.log('Incident IDs');
+  console.log(incident_ids);
+  const ipairs = incident_ids.map<[string, FetchedTrace]>((id) => [id, traces[id]]);
+  const incident_traces: Map<string, FetchedTrace> = new Map(ipairs);
+  console.log('Incident traces');
+  console.log(incident_traces);
+
+  const kvPairs = cohort.map<[string, FetchedTrace]>((id) => [id, traces[id] || { id, state: null }]);
   const tracesData: Map<string, FetchedTrace> = new Map(kvPairs);
+  console.log('All traces in cohort');
+  console.log(tracesData);
   return {
     a,
     b,
     cohort,
     tracesData,
+    steady_traces,
+    incident_traces,
     traceDiffState: state.traceDiff,
   };
 }
