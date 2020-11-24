@@ -76,14 +76,14 @@ export class UnconnectedTraceDiffGraph extends React.PureComponent<Props> {
     const aData = a.data;
     const bData = b.data;
     let sData = [];
-    for (let k in steady_traces.keys()) {
-      let f = steady_traces.get(k);
+    for (let [key, value] of steady_traces) {
+      let f = value;
       let t = f ? f.data : null;
       if (t) sData.push(t);
     }
     let iData = [];
-    for (let k in incident_traces.keys()) {
-      let f = incident_traces.get(k);
+    for (let [key, value] of incident_traces) {
+      let f = value;
       let t = f ? f.data : null;
       if (t) iData.push(t);
     }
