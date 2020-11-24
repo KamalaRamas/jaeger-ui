@@ -183,36 +183,31 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
   const twomin = millisSinceEpoch - 120000;
 
   let steady_ids: string[] = [];
-  for (var i = 0; i < cohort.length; i++) {
-    let f: FetchedTrace = traces[cohort[i]];
+  let incident_ids: string[] = [];
+  for (let id in traces) {
+    let f: FetchedTrace = traces[id];
     let t = f ? f.data : null;
     let stime: number = t ? t.startTime : 0;
     if (stime) {
       if (stime / 1000 < twomin) {
-        steady_ids.push(cohort[i]);
+        steady_ids.push(id);
+      } else {
+        incident_ids.push(id);
       }
     }
   }
   console.log('Steady-state IDs');
   console.log(steady_ids);
+  console.log(steady_ids.length);
+  console.log('Incident IDs');
+  console.log(incident_ids);
+  console.log(incident_ids.length);
+
   const spairs = steady_ids.map<[string, FetchedTrace]>((id) => [id, traces[id]]);
   const steady_traces: Map<string, FetchedTrace> = new Map(spairs);
   console.log('Steady-state traces');
   console.log(steady_traces);
 
-  let incident_ids: string[] = [];
-  for (var i = 0; i < cohort.length; i++) {
-    let f: FetchedTrace = traces[cohort[i]];
-    let t = f ? f.data : null;
-    let stime: number = t ? t.startTime : 0;
-    if (stime) {
-      if (stime / 1000 >= twomin) {
-        incident_ids.push(cohort[i]);
-      }
-    }
-  }
-  console.log('Incident IDs');
-  console.log(incident_ids);
   const ipairs = incident_ids.map<[string, FetchedTrace]>((id) => [id, traces[id]]);
   const incident_traces: Map<string, FetchedTrace> = new Map(ipairs);
   console.log('Incident traces');
@@ -220,8 +215,6 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
 
   const kvPairs = cohort.map<[string, FetchedTrace]>((id) => [id, traces[id] || { id, state: null }]);
   const tracesData: Map<string, FetchedTrace> = new Map(kvPairs);
-  console.log('All traces in cohort');
-  console.log(tracesData);
   return {
     a,
     b,
