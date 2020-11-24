@@ -40,10 +40,7 @@ function getUiFindVertexKeysFn(
 
 export const getUiFindVertexKeys = memoizeOne(getUiFindVertexKeysFn);
 
-function getEdgesAndVerticesFn(aData: Trace, bData: Trace, sData: Trace[], iData: Trace[]) {
-  const aTraceDag = TraceDag.newFromTrace(aData);
-  const bTraceDag = TraceDag.newFromTrace(bData);
-
+function getEdgesAndVerticesFn(sData: Trace[], iData: Trace[]) {
   let sdags = [];
   for (var i = 0; i < sData.length; i++) {
     const t = TraceDag.newFromTrace(sData[i]);
@@ -55,7 +52,7 @@ function getEdgesAndVerticesFn(aData: Trace, bData: Trace, sData: Trace[], iData
     idags.push(t);
   }
 
-  const diffDag = TraceDag.diff(aTraceDag, bTraceDag, sdags, idags);
+  const diffDag = TraceDag.diff(sdags, idags);
   return convPlexus<TDiffCounts>(diffDag.nodesMap);
 }
 

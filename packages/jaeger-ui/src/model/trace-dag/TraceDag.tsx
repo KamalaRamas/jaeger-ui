@@ -52,30 +52,8 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
     return dag;
   }
 
-  static diff(
-    a: TraceDag<TDenseSpanMembers>,
-    b: TraceDag<TDenseSpanMembers>,
-    sdags: TraceDag<TDenseSpanMembers>[],
-    idags: TraceDag<TDenseSpanMembers>[]
-  ) {
+  static diff(sdags: TraceDag<TDenseSpanMembers>[], idags: TraceDag<TDenseSpanMembers>[]) {
     const dag: TraceDag<TDiffCounts> = new TraceDag();
-    const old_dag: TraceDag<TDiffCounts> = new TraceDag();
-
-    function makeDiffNode(id: NodeID) {
-      const nodeA = a.nodesMap.get(id);
-      const nodeB = b.nodesMap.get(id);
-      const parentNodeID = (nodeA && nodeA.parentID) || (nodeB && nodeB.parentID) || null;
-      const members = [...(nodeA ? nodeA.members : []), ...(nodeB ? nodeB.members : [])];
-      old_dag.addNode(id, parentNodeID, {
-        members,
-        a: nodeA ? nodeA.members : null,
-        b: nodeB ? nodeB.members : null,
-        operation: (nodeA && nodeA.operation) || (nodeB && nodeB.operation) || '__UNSET__',
-        service: (nodeA && nodeA.service) || (nodeB && nodeB.service) || '__UNSET__',
-      });
-    }
-    //const ids = new Set([...a.nodesMap.keys(), ...b.nodesMap.keys()]);
-    //ids.forEach(makeDiffNode);
 
     function getEdge(t: TraceDag<TDenseSpanMembers>, id: NodeID) {
       const trace: TraceDag<TDenseSpanMembers> = t;

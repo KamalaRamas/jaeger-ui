@@ -158,12 +158,7 @@ export class TraceDiffImpl extends React.PureComponent<TStateProps & TDispatchPr
           />
         </div>
         <div key="graph" className="TraceDiff--graphWrapper" style={{ top: graphTopOffset }}>
-          <TraceDiffGraph
-            a={traceA}
-            b={traceB}
-            steady_traces={steady_traces}
-            incident_traces={incident_traces}
-          />
+          <TraceDiffGraph steady_traces={steady_traces} incident_traces={incident_traces} />
         </div>
       </React.Fragment>
     );

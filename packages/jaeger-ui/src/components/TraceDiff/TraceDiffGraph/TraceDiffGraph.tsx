@@ -28,8 +28,6 @@ import { FetchedTrace, TNil } from '../../../types';
 import './TraceDiffGraph.css';
 
 type Props = {
-  a: FetchedTrace | TNil;
-  b: FetchedTrace | TNil;
   steady_traces: Map<string, FetchedTrace>;
   incident_traces: Map<string, FetchedTrace>;
 } & TExtractUiFindFromStateReturn;
@@ -46,35 +44,7 @@ export class UnconnectedTraceDiffGraph extends React.PureComponent<Props> {
   }
 
   render() {
-    const { a, b, steady_traces, incident_traces, uiFind = '' } = this.props;
-    if (!a || !b) {
-      return <h1 className="u-mt-vast u-tx-muted ub-tx-center">At least two Traces are needed</h1>;
-    }
-    if (a.error || b.error) {
-      return (
-        <div className="TraceDiffGraph--errorsWrapper">
-          {a.error && (
-            <ErrorMessage
-              className="ub-my4"
-              error={a.error}
-              messageClassName="TraceDiffGraph--errorMessage"
-            />
-          )}
-          {b.error && (
-            <ErrorMessage
-              className="ub-my4"
-              error={b.error}
-              messageClassName="TraceDiffGraph--errorMessage"
-            />
-          )}
-        </div>
-      );
-    }
-    if (a.state === fetchedState.LOADING || b.state === fetchedState.LOADING) {
-      return <LoadingIndicator className="u-mt-vast" centered />;
-    }
-    const aData = a.data;
-    const bData = b.data;
+    const { steady_traces, incident_traces, uiFind = '' } = this.props;
     let sData = [];
     for (let [key, value] of steady_traces) {
       let f = value;
@@ -87,10 +57,7 @@ export class UnconnectedTraceDiffGraph extends React.PureComponent<Props> {
       let t = f ? f.data : null;
       if (t) iData.push(t);
     }
-    if (!aData || !bData) {
-      return <div className="TraceDiffGraph--graphWrapper" />;
-    }
-    const { edges, vertices } = getEdgesAndVertices(aData, bData, sData, iData);
+    const { edges, vertices } = getEdgesAndVertices(sData, iData);
     const keys = getUiFindVertexKeys(uiFind, vertices);
     const dagClassName = cx('TraceDiffGraph--dag', { 'is-uiFind-mode': uiFind });
     const inputProps: Record<string, any> = {
@@ -103,7 +70,8 @@ export class UnconnectedTraceDiffGraph extends React.PureComponent<Props> {
         <Digraph
           // `key` is necessary to see updates to the graph when a or b changes
           // TODO(joe): debug this issue in Digraph
-          key={`${a.id} vs ${b.id}`}
+          // key={`${a.id} vs ${b.id}`}
+          key={`Compare sets of traces`}
           minimap
           zoom
           className={dagClassName}
