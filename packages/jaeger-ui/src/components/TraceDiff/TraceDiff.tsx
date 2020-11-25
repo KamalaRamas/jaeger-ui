@@ -184,14 +184,21 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
   let steady_ids: string[] = [];
   let incident_ids: string[] = [];
   for (let id in traces) {
+    if (steady_ids.length >= 100 && incident_ids.length >= 100) {
+      break;
+    }
     let f: FetchedTrace = traces[id];
     let t = f ? f.data : null;
     let stime: number = t ? t.startTime : 0;
     if (stime) {
       if (stime / 1000 < cutoff) {
-        steady_ids.push(id);
+        if (steady_ids.length < 100) {
+          steady_ids.push(id);
+        }
       } else {
-        incident_ids.push(id);
+        if (incident_ids.length < 100) {
+          incident_ids.push(id);
+        }
       }
     }
   }

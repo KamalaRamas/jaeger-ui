@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import React from 'react';
-import { Dropdown, Icon, Menu, Form, Input } from 'antd';
+import { Dropdown, Icon, Menu, Form, Input, InputNumber } from 'antd';
 import _has from 'lodash/has';
 import { connect } from 'react-redux';
 import { RouteComponentProps, Link, withRouter } from 'react-router-dom';
@@ -105,7 +105,7 @@ export function TopNavImpl(props: Props) {
   function gotoCompare(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const target = event.target as any;
-    const value = target.elements.idInput.value;
+    const value = target.elements.stime.value;
     console.log('Value');
     console.log(value);
     if (value) {
@@ -135,9 +135,12 @@ export function TopNavImpl(props: Props) {
         <Menu.Item>
           <TraceIDSearchInput />
         </Menu.Item>
-        <Form layout="horizontal" onSubmit={gotoCompare}>
-          <Input autosize={null} name="idInput" placeholder="x sec ..." />
-        </Form>
+        <Menu.Item>
+          <Form layout="horizontal" onSubmit={gotoCompare}>
+            <input name="stime" placeholder="Incident statrt: x min ..." />
+            <input type="submit" value="Set" />
+          </Form>
+        </Menu.Item>
         <Menu.Item key={diffUrl.getUrl(props.traceDiff)}>
           <Link to={diffUrl.getUrl(props.traceDiff)}>TraceDiff</Link>
         </Menu.Item>
