@@ -18,6 +18,7 @@ type TTraceDiffState = {
   a?: string | TNil;
   b?: string | TNil;
   cohort: string[];
+  istart?: number;
 };
 
 // eslint-disable-next-line no-undef

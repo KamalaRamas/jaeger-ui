@@ -173,9 +173,13 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
   const cohort: string[] = Array.from(fullCohortSet);
   const { traces } = state.trace;
 
+  const istart = state.traceDiff.istart;
+  console.log('Incident start time');
+  console.log(istart);
   const now = new Date();
   const millisSinceEpoch = Math.round(now.getTime());
-  const twomin = millisSinceEpoch - 120000;
+  const num_min = istart ? istart : 2;
+  const cutoff = millisSinceEpoch - num_min * 60 * 1000;
 
   let steady_ids: string[] = [];
   let incident_ids: string[] = [];
@@ -184,7 +188,7 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
     let t = f ? f.data : null;
     let stime: number = t ? t.startTime : 0;
     if (stime) {
-      if (stime / 1000 < twomin) {
+      if (stime / 1000 < cutoff) {
         steady_ids.push(id);
       } else {
         incident_ids.push(id);

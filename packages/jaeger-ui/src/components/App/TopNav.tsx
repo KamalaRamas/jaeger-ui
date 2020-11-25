@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import React from 'react';
-import { Dropdown, Icon, Menu } from 'antd';
+import { Dropdown, Icon, Menu, Form, Input } from 'antd';
 import _has from 'lodash/has';
 import { connect } from 'react-redux';
 import { RouteComponentProps, Link, withRouter } from 'react-router-dom';
@@ -101,10 +101,23 @@ export function TopNavImpl(props: Props) {
   const { config, router } = props;
   const { pathname } = router.location;
   const menuItems = Array.isArray(config.menu) ? config.menu : [];
+
+  function gotoCompare(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const target = event.target as any;
+    const value = target.elements.idInput.value;
+    console.log('Value');
+    console.log(value);
+    if (value) {
+      props.traceDiff.istart = value;
+    }
+    console.log(props.traceDiff);
+  }
+
   return (
     <div>
       <Menu theme="dark" mode="horizontal" selectable={false} className="ub-right" selectedKeys={[pathname]}>
-        {menuItems.map(m => {
+        {menuItems.map((m) => {
           if (isItem(m)) {
             return getItem(m);
           }
@@ -121,6 +134,12 @@ export function TopNavImpl(props: Props) {
         </Menu.Item>
         <Menu.Item>
           <TraceIDSearchInput />
+        </Menu.Item>
+        <Form layout="horizontal" onSubmit={gotoCompare}>
+          <Input autosize={null} name="idInput" placeholder="x sec ..." />
+        </Form>
+        <Menu.Item key={diffUrl.getUrl(props.traceDiff)}>
+          <Link to={diffUrl.getUrl(props.traceDiff)}>TraceDiff</Link>
         </Menu.Item>
         {NAV_LINKS.map(({ matches, to, text }) => {
           const url = typeof to === 'string' ? to : to(props);
