@@ -189,10 +189,25 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
     }
     let f: FetchedTrace = traces[id];
     let t = f ? f.data : null;
+    let success: boolean = true;
+    let spans = t ? t.spans : null;
+    let num_spans: number = spans ? spans.length : 0;
+    for (var i = 0; i < num_spans; i++) {
+      let span = spans ? spans[i] : null;
+      let tags = span ? span.tags : null;
+      let num_tags: number = tags ? tags.length : 0;
+      for (var j = 0; j < num_tags; j++) {
+        let t = tags ? tags[j] : null;
+        if (t && t.key == 'status.code' && t.value != 0) {
+          success = false;
+          break;
+        }
+      }
+    }
     let stime: number = t ? t.startTime : 0;
     if (stime) {
       if (stime / 1000 < cutoff) {
-        if (steady_ids.length < 100) {
+        if (success && steady_ids.length < 100) {
           steady_ids.push(id);
         }
       } else {
