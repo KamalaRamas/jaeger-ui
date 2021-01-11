@@ -37,8 +37,10 @@ type TStateProps = {
   b: string | undefined;
   cohort: string[];
   tracesData: Map<string, FetchedTrace>;
+  all_traces: Map<string, FetchedTrace>;
   steady_traces: Map<string, FetchedTrace>;
   incident_traces: Map<string, FetchedTrace>;
+  itraces_success: boolean[];
   traceDiffState: TTraceDiffState;
 };
 
@@ -140,7 +142,16 @@ export class TraceDiffImpl extends React.PureComponent<TStateProps & TDispatchPr
   };
 
   render() {
-    const { a, b, cohort, tracesData, steady_traces, incident_traces } = this.props;
+    const {
+      a,
+      b,
+      cohort,
+      tracesData,
+      all_traces,
+      steady_traces,
+      incident_traces,
+      itraces_success,
+    } = this.props;
     const { graphTopOffset } = this.state;
     const traceA = a ? tracesData.get(a) || { id: a } : null;
     const traceB = b ? tracesData.get(b) || { id: b } : null;
@@ -158,7 +169,12 @@ export class TraceDiffImpl extends React.PureComponent<TStateProps & TDispatchPr
           />
         </div>
         <div key="graph" className="TraceDiff--graphWrapper" style={{ top: graphTopOffset }}>
-          <TraceDiffGraph steady_traces={steady_traces} incident_traces={incident_traces} />
+          <TraceDiffGraph
+            all_traces={all_traces}
+            steady_traces={steady_traces}
+            incident_traces={incident_traces}
+            itraces_success={itraces_success}
+          />
         </div>
       </React.Fragment>
     );
@@ -178,15 +194,17 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
   console.log(istart);
   const now = new Date();
   const millisSinceEpoch = Math.round(now.getTime());
-  const num_min = istart ? istart : 2;
-  const cutoff = millisSinceEpoch - num_min * 60 * 1000;
+  const num_sec = istart ? istart : 2;
+  const cutoff = millisSinceEpoch - num_sec * 1000;
 
+  let all_steady_ids: string[] = [];
   let steady_ids: string[] = [];
   let incident_ids: string[] = [];
+  let itraces_success: boolean[] = [];
   for (let id in traces) {
-    if (steady_ids.length >= 100 && incident_ids.length >= 100) {
+    /*if (steady_ids.length >= 100 && incident_ids.length >= 100) {
       break;
-    }
+    }*/
     let f: FetchedTrace = traces[id];
     let t = f ? f.data : null;
     let success: boolean = true;
@@ -207,12 +225,16 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
     let stime: number = t ? t.startTime : 0;
     if (stime) {
       if (stime / 1000 < cutoff) {
-        if (success && steady_ids.length < 100) {
-          steady_ids.push(id);
+        if (success) {
+          if (steady_ids.length < 100) {
+            steady_ids.push(id);
+          }
+          all_steady_ids.push(id);
         }
       } else {
         if (incident_ids.length < 100) {
           incident_ids.push(id);
+          itraces_success.push(success);
         }
       }
     }
@@ -223,6 +245,9 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
   console.log('Incident IDs');
   console.log(incident_ids);
   console.log(incident_ids.length);
+
+  const apairs = all_steady_ids.map<[string, FetchedTrace]>((id) => [id, traces[id]]);
+  const all_traces: Map<string, FetchedTrace> = new Map(apairs);
 
   const spairs = steady_ids.map<[string, FetchedTrace]>((id) => [id, traces[id]]);
   const steady_traces: Map<string, FetchedTrace> = new Map(spairs);
@@ -241,8 +266,10 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
     b,
     cohort,
     tracesData,
+    all_traces,
     steady_traces,
     incident_traces,
+    itraces_success,
     traceDiffState: state.traceDiff,
   };
 }

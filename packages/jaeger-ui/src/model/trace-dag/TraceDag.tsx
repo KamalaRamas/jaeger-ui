@@ -52,7 +52,12 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
     return dag;
   }
 
-  static diff(sdags: TraceDag<TDenseSpanMembers>[], idags: TraceDag<TDenseSpanMembers>[]) {
+  static diff(
+    adags: TraceDag<TDenseSpanMembers>[],
+    sdags: TraceDag<TDenseSpanMembers>[],
+    idags: TraceDag<TDenseSpanMembers>[],
+    itraces_success: boolean[]
+  ) {
     const dag: TraceDag<TDiffCounts> = new TraceDag();
 
     function getEdge(t: TraceDag<TDenseSpanMembers>, id: NodeID) {
@@ -81,10 +86,17 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
 
     var ids = idags[0] ? [...idags[0].nodesMap.keys()] : [];
     var all_after_edges: edge_vals[] = ids.map((id) => getEdge(idags[0], id));
+    var success_after_edges: edge_vals[] = [];
+    if (itraces_success[0]) {
+      success_after_edges = success_after_edges.concat(all_after_edges);
+    }
     for (var i = 1; i < idags.length; i++) {
       const after_ids = idags[i] ? [...idags[i].nodesMap.keys()] : [];
       const after_edges: edge_vals[] = after_ids.map((id) => getEdge(idags[i], id));
       all_after_edges = all_after_edges.concat(after_edges);
+      if (itraces_success[i]) {
+        success_after_edges = success_after_edges.concat(after_edges);
+      }
     }
     console.log('After Edges');
     console.log(all_after_edges);
@@ -128,6 +140,26 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
     }
     console.log('After Diff');
     console.log(after_diff);
+
+    var after_diff2 = [];
+    for (var j = 0; j < after_diff.length; j++) {
+      let ae: edge_vals = after_diff[j];
+      if (ae.parent_id == '') continue;
+      let match: boolean = false;
+      for (var i = 0; i < success_after_edges.length; i++) {
+        let sae: edge_vals = success_after_edges[i];
+        if (sae.parent_id == '') continue;
+        if (sae.parent_id == ae.parent_id && sae.child_id == ae.child_id) {
+          match = true;
+          break;
+        }
+      }
+      if (match == false) {
+        after_diff2.push(ae);
+      }
+    }
+    console.log('After Diff');
+    console.log(after_diff2);
 
     let roots: edge_vals[] = [];
     let added = new Set();
@@ -173,12 +205,12 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
         }
       }
     }
-    for (var i = 0; i < after_diff.length; i++) {
-      let tmp1: edge_vals = after_diff[i];
+    for (var i = 0; i < after_diff2.length; i++) {
+      let tmp1: edge_vals = after_diff2[i];
       let match: boolean = false;
-      for (var j = 0; j < after_diff.length; j++) {
+      for (var j = 0; j < after_diff2.length; j++) {
         if (i == j) continue;
-        let tmp2: edge_vals = after_diff[j];
+        let tmp2: edge_vals = after_diff2[j];
         if (tmp2.child_id == tmp1.parent_id) {
           match = true;
           break;

@@ -137,7 +137,7 @@ export function TopNavImpl(props: Props) {
         </Menu.Item>
         <Menu.Item>
           <Form layout="horizontal" onSubmit={gotoCompare}>
-            <input name="stime" placeholder="Incident statrt: x min ..." />
+            <input name="stime" placeholder="Incident statrt: x sec ..." />
             <input type="submit" value="Set" />
           </Form>
         </Menu.Item>
