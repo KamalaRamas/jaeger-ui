@@ -226,13 +226,13 @@ export function mapStateToProps(state: ReduxState, ownProps: { match: match<TDif
     if (stime) {
       if (stime / 1000 < cutoff) {
         if (success) {
-          if (steady_ids.length < 100) {
+          if (steady_ids.length < 20) {
             steady_ids.push(id);
           }
           all_steady_ids.push(id);
         }
       } else {
-        if (incident_ids.length < 100) {
+        if (incident_ids.length < 20) {
           incident_ids.push(id);
           itraces_success.push(success);
         }
