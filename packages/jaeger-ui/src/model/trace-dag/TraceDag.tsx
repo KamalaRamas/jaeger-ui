@@ -74,6 +74,47 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
       trace: TraceDag<TDenseSpanMembers>;
     }
 
+    var ids = adags[0] ? [...adags[0].nodesMap.keys()] : [];
+    var all_edges: edge_vals[] = ids.map((id) => getEdge(adags[0], id));
+    for (var i = 1; i < adags.length; i++) {
+      const before_ids = adags[i] ? [...adags[i].nodesMap.keys()] : [];
+      const before_edges: edge_vals[] = before_ids.map((id) => getEdge(adags[i], id));
+      all_edges = all_edges.concat(before_edges);
+    }
+    console.log('All Edges');
+    console.log(all_edges);
+    let countMap: Map<string, number> = new Map();
+    for (var i = 0; i < all_edges.length; i++) {
+      let ae: edge_vals = all_edges[i];
+      let key: string = ae.parent_id + '_' + ae.child_id;
+      if (countMap.has(key)) {
+        let val = countMap.get(key);
+        if (val) {
+          countMap.set(key, val + 1);
+        } else {
+          countMap.set(key, 1);
+        }
+      } else {
+        countMap.set(key, 1);
+      }
+    }
+    /*Compute Threshold*/
+    let N: number = adags.length ? adags.length : 0;
+    let n: number = sdags.length ? sdags.length : 0;
+    let t: number = N * (1 - Math.exp(Math.log(0.01) / n));
+    console.log(t);
+
+    function compareVal(n: edge_vals) {
+      let k: string = n.parent_id + '_' + n.child_id;
+      if (countMap.has(k)) {
+        let v = countMap.get(k);
+        if (v && v >= t) {
+          return v;
+        }
+      }
+      return false;
+    }
+
     var ids = sdags[0] ? [...sdags[0].nodesMap.keys()] : [];
     var all_before_edges: edge_vals[] = ids.map((id) => getEdge(sdags[0], id));
     for (var i = 1; i < sdags.length; i++) {
@@ -81,6 +122,7 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
       const before_edges: edge_vals[] = before_ids.map((id) => getEdge(sdags[i], id));
       all_before_edges = all_before_edges.concat(before_edges);
     }
+    all_before_edges = all_before_edges.filter(compareVal);
     console.log('Before Edges');
     console.log(all_before_edges);
 
@@ -98,6 +140,8 @@ export default class TraceDag<TData extends { [k: string]: unknown } = {}> {
         success_after_edges = success_after_edges.concat(after_edges);
       }
     }
+    success_after_edges = success_after_edges.filter(compareVal);
+    all_after_edges = all_after_edges.filter(compareVal);
     console.log('After Edges');
     console.log(all_after_edges);
 
